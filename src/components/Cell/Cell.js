@@ -16,12 +16,18 @@ const Cell = props => {
     return value.neighbour;
   }
 
+  let className = 'cell';
+
+  if(props.value.isRevealed){
+    className += ' cell-revealed'
+  }
+
   return (
     <div
+      className={className}
       onClick={props.clicked}
-      onContextMenu={props.menu}
-      className='cell'
-      >
+      onContextMenu={props.cMenu}
+    >
       {getValue()}
     </div>
   );

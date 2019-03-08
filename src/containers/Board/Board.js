@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import Cell from '../../components/Cell/Cell';
 import './Board.css';
 
@@ -65,7 +65,7 @@ class Board extends Component {
           // * loop through the area array and checks if it is a mine
           area.map(value => {
             if (value.isMine) {
-              mine++;
+              return mine++;
             }
           });
 
@@ -137,24 +137,158 @@ class Board extends Component {
     gameStatus: false
   };
 
-  renderBoard(data) {
-    return data.map(datarow => {
-      return datarow.map(dataitem => {
-        return (
-          <span key={dataitem.x * datarow.length + dataitem.y}> 
-            <Cell
-              onClick={() => this.handleCellClick(dataitem.x, dataitem.y)}
-              cMenu={e => this.handleContextMenu(e, dataitem.x, dataitem.y)}
-              value={dataitem}
-            />
-            {datarow[datarow.length - 1] === dataitem ? (
-              <div className='clear' />
-            ) : (
-              ''
-            )}
-          </span>
-        );
+  handleCellClick(x, y) {
+    // check if revealed. return if true.
+    if (this.state.boardData[x][y].isRevealed || this.state.boardData[x][y].isFlagged) return null;
+
+    // check if mine. game over if true
+    if (this.state.boardData[x][y].isMine) {
+      this.setState({ gameStatus: 'You Lost.' });
+      this.revealBoard();
+      alert('game over');
+    }
+
+    let updatedData = this.state.boardData;
+    updatedData[x][y].isFlagged = false;
+    updatedData[x][y].isRevealed = true;
+
+    if (updatedData[x][y].isEmpty) {
+      updatedData = this.revealEmpty(x, y, updatedData);
+    }
+    if (this.getHidden(updatedData).length === this.props.mines) {
+      this.setState({ gameStatus: 'You Win.' });
+      this.revealBoard();
+      alert('You Win');
+    }
+    this.setState({
+      boardData: updatedData,
+      mineCount: this.props.mines - this.getFlags(updatedData).length,
+      gameWon: 'win'
+    });
+  }
+
+  revealEmpty(x, y, data) {
+    let area = this.traverseBoard(x, y, data);
+    area.map(value => {
+      if (
+        !value.isFlagged &&
+        !value.isRevealed &&
+        (value.isEmpty || !value.isMine)
+      ) {
+        data[value.x][value.y].isRevealed = true;
+        if (value.isEmpty) {
+          this.revealEmpty(value.x, value.y, data);
+        }
+      }
+    });
+    return data;
+  }
+
+  handleContextMenu(event, x, y) {
+    event.preventDefault(); // prevents default behaviour (i.e. right click menu on browsers.)
+    let updatedData = this.state.boardData;
+    let mines = this.state.mineCount;
+    let win = false;
+    // check if already revealed
+    if (updatedData[x][y].isRevealed) return;
+    if (updatedData[x][y].isFlagged) {
+      updatedData[x][y].isFlagged = false;
+      mines++;
+    } else {
+      updatedData[x][y].isFlagged = true;
+      mines--;
+    }
+    if (mines === 0) {
+      const mineArray = this.getMines(updatedData);
+      const FlagArray = this.getFlags(updatedData);
+      if (JSON.stringify(mineArray) === JSON.stringify(FlagArray)) {
+        this.revealBoard();
+        alert('You Win');
+      }
+    }
+    this.setState({
+      boardData: updatedData,
+    });
+  }
+  
+  getMines(data) {
+    let mineArray = [];
+
+    data.map(datarow => {
+      datarow.map((dataitem) => {
+        if (dataitem.isMine) {
+          mineArray.push(dataitem);
+        }
       });
+    });
+
+    return mineArray;
+  }
+
+  revealBoard() {
+    let updatedData = this.state.boardData;
+    updatedData.map(datarow => {
+      datarow.map(dataitem => {
+        dataitem.isRevealed = true;
+      });
+    });
+    this.setState({
+      boardData: updatedData
+    });
+  }
+
+  // get Hidden cells
+  getHidden(data) {
+    let mineArray = [];
+
+    data.map(datarow => {
+      datarow.map(dataitem => {
+        if (!dataitem.isRevealed) {
+          mineArray.push(dataitem);
+        }
+      });
+    });
+
+    return mineArray;
+  }
+
+  // get Flags
+  getFlags(data) {
+    let mineArray = [];
+
+    data.map(datarow => {
+      datarow.map(dataitem => {
+        if (dataitem.isFlagged) {
+          mineArray.push(dataitem);
+        }
+      });
+    });
+
+    return mineArray;
+  }
+
+  renderBoard(data) {
+    return data.map((datarow, i) => {
+      return (
+        <div className='row' key={i}>
+          {datarow.map((dataitem, i) => {
+            return (
+              <Fragment key={dataitem.x * datarow.length + dataitem.y}>
+                <Cell
+                  value={dataitem}
+                  clicked={() => this.handleCellClick(dataitem.x, dataitem.y)}
+                  cMenu={(e) => this.handleContextMenu(e, dataitem.x, dataitem.y)}
+                />
+                {datarow[datarow.length - 1] === dataitem ? (
+                  <div className='clear' />
+                ) : (
+                    ''
+                  )}
+              </Fragment>
+            );
+          })}
+        </div>
+      );
     });
   }
 

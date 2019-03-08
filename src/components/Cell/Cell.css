@@ -1,5 +1,12 @@
 .cell{
-  background-color: black;
-  padding: 20px;
-  width: 20%;
+  border: 2px solid black;
+  padding: 10px;
+  width: 12%;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.cell-revealed{
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
 }
